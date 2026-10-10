@@ -51,7 +51,7 @@ import { createReporter, createTabHealthTracker, collectResourceSnapshot, classi
 import { mountDocs } from './lib/openapi.js';
 import { initSentry, captureException as sentryCaptureException, setupExpressErrorHandler as setupSentryErrorHandler, flush as sentryFlush } from './lib/sentry.js';
 import { prepareExternalCamoufoxExecutable } from './lib/camoufox-executable.js';
-import { createVirtualDisplayRegistry } from './lib/plugin-capabilities.js';
+import { createVirtualDisplayRegistry, virtualDisplayScreen } from './lib/plugin-capabilities.js';
 import { killProcessIds } from './lib/browser-processes.js';
 import { snapshotOwnedBrowserProcesses, survivingOwnedBrowserProcesses, profilePathsFromProcessSnapshot } from './lib/process-ownership.js';
 import { killWindowsProcessTree, refreshWindowsProcesses } from './lib/windows-processes.js';
@@ -851,7 +851,8 @@ function getTotalTabCount() {
 // Virtual display for WebGL support and anti-detection.
 // Xvfb gives Firefox a real X display with GLX, enabling software-rendered WebGL
 // via Mesa llvmpipe. Without this, WebGL returns "no context" -- a massive bot signal.
-const DEFAULT_VIRTUAL_DISPLAY_RESOLUTION = '1280x720x24';
+// The fingerprint screen is capped at this size; the Linux fingerprint pool has no screen within 1280x720.
+const DEFAULT_VIRTUAL_DISPLAY_RESOLUTION = '1920x1080x24';
 
 class DefaultVirtualDisplay extends VirtualDisplay {
   get xvfb_args() {
@@ -1169,6 +1170,7 @@ async function launchBrowserInstance() {
         geoip: !!launchProxy,
         locale: launchLocale({ hasProxy: !!proxyPool, directIdentity: CONFIG.directIdentity }),
         virtual_display: vdDisplay,
+        screen: localVirtualDisplay ? virtualDisplayScreen(localVirtualDisplay) : undefined,
         exclude_addons: CONFIG.disableDefaultAddons ? ['UBO'] : undefined,
       }, {
         attempt,
